@@ -1,0 +1,46 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-runner-cron
+  namespace: {{ .Release.Namespace }}
+spec:
+  jobTemplate:
+    metadata:
+      name: sonobuoy
+    spec:
+      completions: 1
+      parallelism: 1
+      template:
+        metadata:
+          name: sonobuoy
+        spec:
+          serviceAccountName: {{ .Release.Name }}-sa
+          automountServiceAccountToken: true
+          volumes:
+            - name: sonobuoy
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-shared-volume
+          initContainers:
+            - image: rahulraju/ubuntu-sonobuoy-cli:0.0.1
+              name: runner
+              resources: {}
+              command:
+                - "sh"
+                - "-c"
+                - "sonobuoy run --mode quick --wait --wait-output progress && cd /sonobuoy && sonobuoy retrieve -f=results.tar.gz && sleep 30 && tar -xzf results.tar.gz && sonobuoy delete"
+              volumeMounts:
+                - mountPath: /sonobuoy
+                  name: sonobuoy
+          containers:
+            - image: simplealpine/yaml2json
+              name: fileconvertor
+              resources: {}
+              command:
+                - sh
+                - "-c"
+                - "yaml2json /sonobuoy/plugins/e2e/sonobuoy_results.yaml > /sonobuoy/plugins/e2e/sonobuoy_results.json"
+              volumeMounts:
+                - mountPath: /sonobuoy
+                  name: sonobuoy
+          restartPolicy: OnFailure
+  schedule: '30 * * * *'
