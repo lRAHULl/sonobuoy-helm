@@ -1,9 +1,11 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: json-datasource
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-json-datasource
+  namespace: {{ $namespace }}
 data:
   datasources.yaml: |-
     apiVersion: 1
@@ -20,8 +22,8 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: sonobuoy-dashboard-provider
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-sonobuoy-dashboard-provider
+  namespace: {{ $namespace }}
 data:
   dashboardproviders.yaml: |-
     apiVersion: 1
@@ -38,8 +40,8 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: sonobuoy-dashboard
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-sonobuoy-dashboard
+  namespace: {{ $namespace }}
 data:
   dashboard.json: |-
     {

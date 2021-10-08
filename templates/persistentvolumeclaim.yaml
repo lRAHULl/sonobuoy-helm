@@ -1,13 +1,15 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ .Release.Name }}-shared-volume
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-shared-volume
+  namespace: {{ $namespace }}
 spec:
   resources:
     requests:
-      storage: 2Gi
+      storage: {{ .Values.volumeSize }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany

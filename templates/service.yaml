@@ -1,33 +1,44 @@
-apiVersion: v1
-kind: Service
-metadata:
-  creationTimestamp: null
-  labels:
-    app: sonobuoy
-  name: {{ .Release.Name }}-server
-  namespace: {{ .Release.Namespace }}
-spec:
-  ports:
-  - port: 80
-    protocol: TCP
-    targetPort: 8080
-  selector:
-    app: sonobuoy
-  type: LoadBalancer
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $chartName := .Chart.Name -}}
+{{- $chartVersion := .Chart.Version -}}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  creationTimestamp: null
   labels:
+    app.kubernetes.io/name: {{ $releaseName }}
+    helm.sh/chart: {{ $chartName }}
+    helm.sh/chart-version: {{ $chartVersion }}
     app: sonobuoy
-  name: {{ .Release.Name }}-grafana
-  namespace: {{ .Release.Namespace }}
+  name: {{ .Values.sonobuoy.fileServer.service.name }}
+  namespace: {{ $namespace }}
 spec:
   ports:
-  - port: 80
+  - port: {{ .Values.sonobuoy.fileServer.service.port }}
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: sonobuoy
+  type: {{ .Values.sonobuoy.fileServer.service.type }}
+{{- if .Values.sonobuoy.grafana.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ $releaseName }}
+    helm.sh/chart: {{ $chartName }}
+    helm.sh/chart-version: {{ $chartVersion }}
+    app: sonobuoy
+  name: {{ .Values.sonobuoy.grafana.service.name }}
+  namespace: {{ $namespace }}
+spec:
+  ports:
+  - port: {{ .Values.sonobuoy.grafana.service.port }}
     protocol: TCP
     targetPort: 3000
   selector:
     app: sonobuoy
-  type: LoadBalancer
+  type: {{ .Values.sonobuoy.grafana.service.type }}
+{{- end }}

@@ -1,13 +1,15 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Name }}-clusterrolebinding
+  name: {{ $releaseName }}-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Release.Name }}-clusterrole
+  name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: {{ .Release.Name }}-sa
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-sa
+  namespace: {{ $namespace }}

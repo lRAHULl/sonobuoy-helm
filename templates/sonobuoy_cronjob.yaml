@@ -1,33 +1,56 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $chartName := .Chart.Name -}}
+{{- $chartVersion := .Chart.Version -}}
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: {{ .Release.Name }}-runner-cron
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-runner-cron
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $releaseName }}
+    helm.sh/chart: {{ $chartName }}
+    helm.sh/chart-version: {{ $chartVersion }}
+    app: sonobuoy
 spec:
   jobTemplate:
     metadata:
-      name: sonobuoy
+      name: {{ $releaseName }}-runner
+      labels:
+        app.kubernetes.io/name: {{ $releaseName }}
+        helm.sh/chart: {{ $chartName }}
+        helm.sh/chart-version: {{ $chartVersion }}
+        app: sonobuoy
     spec:
-      completions: 1
-      parallelism: 1
       template:
         metadata:
-          name: sonobuoy
+          name: {{ $releaseName }}
+          labels:
+            app.kubernetes.io/name: {{ $releaseName }}
+            helm.sh/chart: {{ $chartName }}
+            helm.sh/chart-version: {{ $chartVersion }}
+            app: sonobuoy
         spec:
-          serviceAccountName: {{ .Release.Name }}-sa
+          serviceAccountName: {{ $releaseName }}-sa
           automountServiceAccountToken: true
           volumes:
             - name: sonobuoy
               persistentVolumeClaim:
-                claimName: {{ .Release.Name }}-shared-volume
+                claimName: {{ $releaseName }}-shared-volume
           initContainers:
-            - image: rahulraju/ubuntu-sonobuoy-cli:0.0.1
+            - image: {{ .Values.sonobuoy.runner.image }}
               name: runner
-              resources: {}
+              resources:
+                requests:
+                  cpu: {{ .Values.sonobuoy.runner.resources.requests.cpu }}
+                  memory: {{ .Values.sonobuoy.runner.resources.requests.memory }}
+                limits:
+                  cpu: {{ .Values.sonobuoy.runner.resources.limits.cpu }}
+                  memory: {{ .Values.sonobuoy.runner.resources.limits.memory }}
               command:
                 - "sh"
                 - "-c"
-                - "sonobuoy run --mode quick --wait --wait-output progress && cd /sonobuoy && sonobuoy retrieve -f=results.tar.gz && sleep 30 && tar -xzf results.tar.gz && sonobuoy delete"
+                - "sonobuoy run {{ .Values.sonobuoy.runner.cliOptions }} --wait --wait-output progress && cd /sonobuoy && sonobuoy retrieve -f=results.tar.gz && sleep 30 && tar -xzf results.tar.gz && sonobuoy delete --wait"
               volumeMounts:
                 - mountPath: /sonobuoy
                   name: sonobuoy
@@ -43,4 +66,4 @@ spec:
                 - mountPath: /sonobuoy
                   name: sonobuoy
           restartPolicy: OnFailure
-  schedule: '30 * * * *'
+  schedule: {{ .Values.cronJobSchedule }}

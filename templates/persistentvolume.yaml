@@ -1,12 +1,14 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: {{ .Release.Name }}-pv
-  namespace: {{ .Release.Namespace }}
+  name: {{ $releaseName }}-pv
+  namespace: {{ $namespace }}
 spec:
   capacity:
-    storage: 2Gi
+    storage: {{ .Values.volumeSize }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
@@ -16,4 +18,4 @@ spec:
     - nfsvers=4.1
   nfs:
     path: /
-    server: 10.0.26.128
+    server: {{ .Values.nfsFileServerIp }}

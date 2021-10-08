@@ -1,0 +1,81 @@
+{{- $releaseName := .Release.Name -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $chartName := .Chart.Name -}}
+{{- $chartVersion := .Chart.Version -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $releaseName }}
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $releaseName }}
+    helm.sh/chart: {{ $chartName }}
+    helm.sh/chart-version: {{ $chartVersion }}
+    app: sonobuoy
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $releaseName }}
+      helm.sh/chart: {{ $chartName }}
+      helm.sh/chart-version: {{ $chartVersion }}
+      app: sonobuoy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $releaseName }}
+        helm.sh/chart: {{ $chartName }}
+        helm.sh/chart-version: {{ $chartVersion }}
+        app: sonobuoy
+    spec:
+      serviceAccountName: {{ $releaseName }}-sa
+      automountServiceAccountToken: true
+      volumes:
+        - name: sonobuoy
+          persistentVolumeClaim:
+            claimName: {{ $releaseName }}-shared-volume
+        - name: grafana-datasource-config
+          configMap:
+            name: {{ $releaseName }}-json-datasource
+        - name: grafana-dashboard-config
+          configMap:
+            name: {{ $releaseName }}-sonobuoy-dashboard
+        - name: sonobuoy-dashboard-provider-config
+          configMap:
+            name: {{ $releaseName }}-sonobuoy-dashboard-provider
+      containers:
+      - image: {{ .Values.sonobuoy.fileServer.image }}
+        name: server
+        resources:
+          requests:
+            cpu: {{ .Values.sonobuoy.fileServer.resources.requests.cpu }}
+            memory: {{ .Values.sonobuoy.fileServer.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.sonobuoy.fileServer.resources.limits.cpu }}
+            memory: {{ .Values.sonobuoy.fileServer.resources.limits.memory }}
+        volumeMounts:
+        - mountPath: /web
+          name: sonobuoy
+      {{- if .Values.sonobuoy.grafana.enabled }}
+      - image: {{ .Values.sonobuoy.grafana.image }}
+        name: grafana
+        resources:
+          requests:
+            cpu: {{ .Values.sonobuoy.grafana.resources.requests.cpu }}
+            memory: {{ .Values.sonobuoy.grafana.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.sonobuoy.grafana.resources.limits.cpu }}
+            memory: {{ .Values.sonobuoy.grafana.resources.limits.memory }}
+        env:
+        - name: GF_INSTALL_PLUGINS
+          value: yesoreyeram-infinity-datasource
+        volumeMounts:
+          - mountPath: /etc/grafana/provisioning/datasources/datasources.yaml
+            name: grafana-datasource-config
+            subPath: datasources.yaml
+          - mountPath: /var/lib/grafana/dashboards/default/
+            name: grafana-dashboard-config
+          - mountPath: /etc/grafana/provisioning/dashboards/dashboardproviders.yaml
+            name: sonobuoy-dashboard-provider-config
+            subPath: dashboardproviders.yaml
+      {{- end }}
